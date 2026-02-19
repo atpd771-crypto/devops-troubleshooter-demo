@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevOps Troubleshooter Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent: #00ff88;
+    --accent2: #ff4466;
+    --accent3: #4488ff;
+    --text: #e0e0f0;
+    --muted: #666680;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 48px;
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+
+  .logo-text h1 {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  .logo-text p {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0,255,136,0.08);
+    border: 1px solid rgba(0,255,136,0.2);
+    padding: 8px 16px;
+    border-radius: 100px;
+    font-size: 13px;
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  /* Stats cards */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    animation: fadeUp 0.6s ease both;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(0,255,136,0.3);
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .stat-card.green::before { background: var(--accent); }
+  .stat-card.red::before { background: var(--accent2); }
+  .stat-card.blue::before { background: var(--accent3); }
+  .stat-card.yellow::before { background: #ffaa00; }
+
+  .stat-card:nth-child(1) { animation-delay: 0.1s; }
+  .stat-card:nth-child(2) { animation-delay: 0.2s; }
+  .stat-card:nth-child(3) { animation-delay: 0.3s; }
+  .stat-card:nth-child(4) { animation-delay: 0.4s; }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-size: 36px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stat-card.green .stat-value { color: var(--accent); }
+  .stat-card.red .stat-value { color: var(--accent2); }
+  .stat-card.blue .stat-value { color: var(--accent3); }
+  .stat-card.yellow .stat-value { color: #ffaa00; }
+
+  .stat-sub {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* Main grid */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 24px;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    animation: fadeUp 0.6s ease both;
+    animation-delay: 0.5s;
+  }
+
+  .panel-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .panel-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-title span {
+    font-size: 16px;
+  }
+
+  .panel-badge {
+    background: rgba(0,255,136,0.1);
+    color: var(--accent);
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    padding: 3px 10px;
+    border-radius: 100px;
+    border: 1px solid rgba(0,255,136,0.2);
+  }
+
+  /* Bug table */
+  .bug-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .bug-table th {
+    padding: 12px 24px;
+    text-align: left;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+  }
+
+  .bug-table td {
+    padding: 16px 24px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(30,30,46,0.5);
+  }
+
+  .bug-table tr:last-child td { border-bottom: none; }
+
+  .bug-table tr:hover td {
+    background: rgba(255,255,255,0.02);
+  }
+
+  .file-badge {
+    background: rgba(68,136,255,0.1);
+    color: var(--accent3);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(68,136,255,0.2);
+  }
+
+  .severity {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+
+  .severity.high {
+    background: rgba(255,68,102,0.1);
+    color: var(--accent2);
+    border: 1px solid rgba(255,68,102,0.2);
+  }
+
+  .severity.medium {
+    background: rgba(255,170,0,0.1);
+    color: #ffaa00;
+    border: 1px solid rgba(255,170,0,0.2);
+  }
+
+  .severity.low {
+    background: rgba(0,255,136,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(0,255,136,0.2);
+  }
+
+  .status-open {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    color: #ffaa00;
+  }
+
+  .status-fixed {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    color: var(--accent);
+  }
+
+  /* Right panel */
+  .right-panels {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  /* Activity feed */
+  .activity-list {
+    padding: 8px 0;
+  }
+
+  .activity-item {
+    padding: 12px 24px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    border-bottom: 1px solid rgba(30,30,46,0.5);
+    transition: background 0.15s;
+  }
+
+  .activity-item:last-child { border-bottom: none; }
+  .activity-item:hover { background: rgba(255,255,255,0.02); }
+
+  .activity-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .activity-icon.bug { background: rgba(255,68,102,0.15); }
+  .activity-icon.fix { background: rgba(0,255,136,0.15); }
+  .activity-icon.scan { background: rgba(68,136,255,0.15); }
+
+  .activity-content p {
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+
+  .activity-content small {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* Files scanned */
+  .files-list {
+    padding: 8px 0;
+  }
+
+  .file-item {
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(30,30,46,0.5);
+  }
+
+  .file-item:last-child { border-bottom: none; }
+
+  .file-name {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--accent3);
+  }
+
+  .file-bugs {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .file-bar {
+    height: 3px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 2px;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+
+  .file-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent3), var(--accent));
+  }
+
+  /* GitHub link */
+  .github-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 20px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 13px;
+    transition: all 0.2s;
+    margin: 16px 24px;
+  }
+
+  .github-link:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.2);
+  }
+
+  /* Animations */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  @keyframes countUp {
+    from { opacity: 0; transform: scale(0.5); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .count-animate {
+    animation: countUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .main-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🤖</div>
+      <div class="logo-text">
+        <h1>DevOps Troubleshooter</h1>
+        <p>AI Bug Detection Dashboard</p>
+      </div>
+    </div>
+    <div class="status-badge">
+      <div class="status-dot"></div>
+      Agent Active
+    </div>
+  </header>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card red">
+      <div class="stat-label">Bugs Found</div>
+      <div class="stat-value count-animate" id="bugs-count">9</div>
+      <div class="stat-sub">across all files</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-label">Files Scanned</div>
+      <div class="stat-value count-animate" id="files-count">3</div>
+      <div class="stat-sub">Python files</div>
+    </div>
+    <div class="stat-card yellow">
+      <div class="stat-label">Issues Created</div>
+      <div class="stat-value count-animate">9</div>
+      <div class="stat-sub">on GitHub</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">Auto-detected</div>
+      <div class="stat-value count-animate">100%</div>
+      <div class="stat-sub">by AI agent</div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="main-grid">
+
+    <!-- Bug table -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title"><span>🐛</span> Bug Reports</div>
+        <div class="panel-badge">Live</div>
+      </div>
+      <table class="bug-table">
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Bug Description</th>
+            <th>Severity</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="file-badge">app.py</span></td>
+            <td>Division by zero in divide_numbers()</td>
+            <td><span class="severity high">● High</span></td>
+            <td><span class="status-open">⏳ Open</span></td>
+          </tr>
+          <tr>
+            <td><span class="file-badge">app.py</span></td>
+            <td>KeyError in get_user() — missing key check</td>
+            <td><span class="severity high">● High</span></td>
+            <td><span class="status-open">⏳ Open</span></td>
+          </tr>
+          <tr>
+            <td><span class="file-badge">app.py</span></td>
+            <td>KeyError in process_data() — value key missing</td>
+            <td><span class="severity medium">● Medium</span></td>
+            <td><span class="status-open">⏳ Open</span></td>
+          </tr>
+          <tr>
+            <td><span class="file-badge">database.py</span></td>
+            <td>SQL Injection vulnerability in get_user()</td>
+            <td><span class="severity high">● High</span></td>
+            <td><span class="status-open">⏳ Open</span></td>
+          </tr>
+          <tr>
+            <td><span class="file-badge">database.py</span></td>
+            <td>Missing parameter tuple in delete_user()</td>
+            <td><span class="severity medium">● Medium</span></td>
+            <td><span class="status-open">⏳ Open</span></td>
+          </tr>
+          <tr>
+            <td><span class="file-badge">database.py</span></td>
+            <td>Division by zero in calculate_age()</td>
+            <td><span class="severity high">● High</span></td>
+            <td><span class="status-open">⏳ Open</span></td>
+          </tr>
+          <tr>
+            <td><span class="file-badge">weather_app.py</span></td>
+            <td>Hardcoded API secret key exposed</td>
+            <td><span class="severity high">● High</span></td>
+            <td><span class="status-open">⏳ Open</span></td>
+          </tr>
+          <tr>
+            <td><span class="file-badge">weather_app.py</span></td>
+            <td>HTTP instead of HTTPS — security risk</td>
+            <td><span class="severity medium">● Medium</span></td>
+            <td><span class="status-open">⏳ Open</span></td>
+          </tr>
+          <tr>
+            <td><span class="file-badge">weather_app.py</span></td>
+            <td>File never closed after writing</td>
+            <td><span class="severity low">● Low</span></td>
+            <td><span class="status-open">⏳ Open</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Right panels -->
+    <div class="right-panels">
+
+      <!-- Activity -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title"><span>⚡</span> Recent Activity</div>
+        </div>
+        <div class="activity-list">
+          <div class="activity-item">
+            <div class="activity-icon scan">🔍</div>
+            <div class="activity-content">
+              <p>Scanned weather_app.py</p>
+              <small>Today · 4 bugs found</small>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-icon bug">🐛</div>
+            <div class="activity-content">
+              <p>GitHub Issue #9 created</p>
+              <small>Today · weather_app.py</small>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-icon scan">🔍</div>
+            <div class="activity-content">
+              <p>Scanned database.py</p>
+              <small>Today · 3 bugs found</small>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-icon bug">🐛</div>
+            <div class="activity-content">
+              <p>GitHub Issue #3 created</p>
+              <small>Today · app.py</small>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-icon scan">🔍</div>
+            <div class="activity-content">
+              <p>Scanned app.py</p>
+              <small>Today · 3 bugs found</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Files -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title"><span>📁</span> Files Analyzed</div>
+        </div>
+        <div class="files-list">
+          <div class="file-item" style="flex-direction:column; align-items:flex-start;">
+            <div style="display:flex;justify-content:space-between;width:100%">
+              <span class="file-name">app.py</span>
+              <span class="file-bugs">3 bugs</span>
+            </div>
+            <div class="file-bar" style="width:100%">
+              <div class="file-bar-fill" style="width:75%"></div>
+            </div>
+          </div>
+          <div class="file-item" style="flex-direction:column; align-items:flex-start;">
+            <div style="display:flex;justify-content:space-between;width:100%">
+              <span class="file-name">database.py</span>
+              <span class="file-bugs">3 bugs</span>
+            </div>
+            <div class="file-bar" style="width:100%">
+              <div class="file-bar-fill" style="width:75%"></div>
+            </div>
+          </div>
+          <div class="file-item" style="flex-direction:column; align-items:flex-start;">
+            <div style="display:flex;justify-content:space-between;width:100%">
+              <span class="file-name">weather_app.py</span>
+              <span class="file-bugs">4 bugs</span>
+            </div>
+            <div class="file-bar" style="width:100%">
+              <div class="file-bar-fill" style="width:100%"></div>
+            </div>
+          </div>
+        </div>
+        <a href="https://github.com/atpd771-crypto/devops-troubleshooter-demo/issues" target="_blank" class="github-link">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          View all GitHub Issues →
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
